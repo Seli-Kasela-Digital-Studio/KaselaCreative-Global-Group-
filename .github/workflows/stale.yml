@@ -1,27 +1,54 @@
-# This workflow warns and then closes issues and PRs that have had no activity for a specified amount of time.
-#
-# You can adjust the behavior by modifying this file.
-# For more information, see:
-# https://github.com/actions/stale
-name: Mark stale issues and pull requests
-
+name: CI Pipeline
 on:
-  schedule:
-  - cron: '42 22 * * *'
-
+  push:
+    branches: [ "main" ]
+  pull_request:
 jobs:
-  stale:
-
+  build:
     runs-on: ubuntu-latest
-    permissions:
-      issues: write
-      pull-requests: write
 
     steps:
-    - uses: actions/stale@v5
-      with:
-        repo-token: ${{ secrets.GITHUB_TOKEN }}
-        stale-issue-message: 'Stale issue message'
-        stale-pr-message: 'Stale pull request message'
-        stale-issue-label: 'no-issue-activity'
-        stale-pr-label: 'no-pr-activity'
+    - name: Checkout
+      uses: actions/checkout@v4
+    - name: Install dependencies
+      run: npm install
+    - name: Run tests
+      run: npm test
+name: Security Scan
+
+on:
+  push:
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Run npm audit
+      run: npm audit --audit-level=high
+
+    - name: Secret Scan
+      uses: trufflesecurity/trufflehog@main
+      version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "daily"
+      FROM node:18
+
+WORKDIR /app
+COPY . .
+
+RUN npm install
+CMD ["npm", "start"]
+version: "3.8"
+
+services:
+  app:
+    build: .
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env
